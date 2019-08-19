@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,7 +14,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	txBuilder "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/pkg/errors"
 	"github.com/sentinel-official/hub/app"
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/lite/proxy"
@@ -112,7 +112,7 @@ func (c *CLI) completeAndBroadcastTxSync(messages []sdk.Msg) (*sdk.TxResponse, e
 
 	txRes := sdk.NewResponseFormatBroadcastTx(res)
 	if txRes.Code != 0 {
-		return &txRes, errors.Errorf(txRes.String())
+		return &txRes, fmt.Errorf(txRes.String())
 	}
 
 	return &txRes, err

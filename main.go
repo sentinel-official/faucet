@@ -14,37 +14,24 @@ import (
 )
 
 var (
-	_cli   *types.CLI
-	coins  string
+	chainID    string
+	rpcAddress string
+	from       string
+	password   string
+	coins      string
+
 	secret = os.Getenv("RECAPTCHA_SECRET")
+
+	_cli *types.CLI
 )
 
 func init() {
-	var (
-		chainID    string
-		rpcAddress string
-		from       string
-		password   string
-		err        error
-	)
-
 	flag.StringVar(&chainID, "chain-id", "sentinel-turing-1", "chain id")
 	flag.StringVar(&rpcAddress, "rpc-address", "127.0.0.1:26657", "rpc server address")
 	flag.StringVar(&from, "from", "faucet", "from account name")
 	flag.StringVar(&password, "password", "", "from account password")
 	flag.StringVar(&coins, "coins", "100000000tsent", "coins to transfer")
 	flag.Parse()
-
-	cfg := sdk.GetConfig()
-	cfg.SetBech32PrefixForAccount(hub.Bech32PrefixAccAddr, hub.Bech32PrefixAccPub)
-	cfg.SetBech32PrefixForValidator(hub.Bech32PrefixValAddr, hub.Bech32PrefixValPub)
-	cfg.SetBech32PrefixForConsensusNode(hub.Bech32PrefixConsAddr, hub.Bech32PrefixConsPub)
-	cfg.Seal()
-
-	_cli, err = types.NewCLI(chainID, rpcAddress, from, password)
-	if err != nil {
-		panic(err)
-	}
 }
 
 func transferCoinsHandler(w http.ResponseWriter, r *http.Request) {
@@ -85,6 +72,19 @@ func transferCoinsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	var err error
+
+	cfg := sdk.GetConfig()
+	cfg.SetBech32PrefixForAccount(hub.Bech32PrefixAccAddr, hub.Bech32PrefixAccPub)
+	cfg.SetBech32PrefixForValidator(hub.Bech32PrefixValAddr, hub.Bech32PrefixValPub)
+	cfg.SetBech32PrefixForConsensusNode(hub.Bech32PrefixConsAddr, hub.Bech32PrefixConsPub)
+	cfg.Seal()
+
+	_cli, err = types.NewCLI(chainID, rpcAddress, from, password)
+	if err != nil {
+		panic(err)
+	}
+
 	http.HandleFunc("/transfer", transferCoinsHandler)
 	log.Fatal(http.ListenAndServe(":8000", nil))
 }
