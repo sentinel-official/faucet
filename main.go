@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
 	"net/http"
@@ -34,24 +35,36 @@ func init() {
 	flag.Parse()
 }
 
+type transferCoinsRequest struct {
+	Address           string `json:"address"`
+	ReCaptchaResponse string `json:"re_captcha_response"`
+}
+
 func transferCoinsHandler(w http.ResponseWriter, r *http.Request) {
-	address := r.FormValue("address")
-	if address == "" {
+	var body transferCoinsRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		utils.WriteErrorToResponse(w, 400, &types.Error{
+			Message: "failed to unmarshal the body",
+			Info:    err,
+		})
+		return
+	}
+
+	if body.Address == "" {
 		utils.WriteErrorToResponse(w, 400, &types.Error{
 			Message: "address field is empty",
 		})
 		return
 	}
 
-	rcr := r.FormValue("g-recaptcha-response")
-	if rcr == "" {
+	if body.ReCaptchaResponse == "" {
 		utils.WriteErrorToResponse(w, 400, &types.Error{
-			Message: "g-recaptcha-response field is empty",
+			Message: "re_captcha_response field is empty",
 		})
 		return
 	}
 
-	if err := utils.ReCaptchaVerify(secret, rcr, ""); err != nil {
+	if err := utils.ReCaptchaVerify(secret, body.ReCaptchaResponse, ""); err != nil {
 		utils.WriteErrorToResponse(w, 400, &types.Error{
 			Message: "failed to verify",
 			Info:    err.Error(),
@@ -59,10 +72,10 @@ func transferCoinsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txRes, err := _cli.TransferCoins(address, coins)
+	txRes, err := _cli.TransferCoins(body.Address, coins)
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, &types.Error{
-			Message: "failed to transfer coins",
+			Message: "failed to transfer the coins",
 			Info:    err.Error(),
 		})
 		return
