@@ -8,6 +8,8 @@ import (
 	"os"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 	hub "github.com/sentinel-official/hub/types"
 
 	"github.com/sentinel-official/faucet/types"
@@ -35,17 +37,17 @@ func init() {
 	flag.Parse()
 }
 
-type transferCoinsRequest struct {
+type transferRequest struct {
 	Address           string `json:"address"`
 	ReCaptchaResponse string `json:"re_captcha_response"`
 }
 
-func transferCoinsHandler(w http.ResponseWriter, r *http.Request) {
-	var body transferCoinsRequest
+func transferHandler(w http.ResponseWriter, r *http.Request) {
+	var body transferRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		utils.WriteErrorToResponse(w, 400, &types.Error{
 			Message: "failed to unmarshal the body",
-			Info:    err,
+			Info:    err.Error(),
 		})
 		return
 	}
@@ -72,7 +74,7 @@ func transferCoinsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txRes, err := _cli.TransferCoins(body.Address, coins)
+	txRes, err := _cli.Transfer(body.Address, coins)
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, &types.Error{
 			Message: "failed to transfer the coins",
@@ -98,6 +100,16 @@ func main() {
 		panic(err)
 	}
 
-	http.HandleFunc("/transfer", transferCoinsHandler)
-	log.Fatal(http.ListenAndServe(":8000", nil))
+	router := mux.NewRouter()
+
+	router.Name("Transfer").
+		Methods("POST").
+		Path("/transfer").
+		HandlerFunc(transferHandler)
+
+	cors := handlers.CORS(
+		handlers.AllowedHeaders([]string{}),
+		handlers.AllowedMethods([]string{"POST", "HEAD", "OPTIONS"}),
+		handlers.AllowedOrigins([]string{"*"}))
+	log.Fatal(http.ListenAndServe(":8000", cors(router)))
 }

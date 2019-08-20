@@ -118,7 +118,7 @@ func (c *CLI) completeAndBroadcastTxSync(messages []sdk.Msg) (*sdk.TxResponse, e
 	return &txRes, err
 }
 
-func (c *CLI) TransferCoins(to, coins string) (*sdk.TxResponse, error) {
+func (c *CLI) Transfer(to, coins string) (*sdk.TxResponse, error) {
 	toAddress, err := sdk.AccAddressFromBech32(to)
 	if err != nil {
 		log.Println("failed to parse the address", err)
