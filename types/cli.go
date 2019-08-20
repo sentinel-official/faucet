@@ -46,7 +46,7 @@ func NewCLI(chainID, rpcAddress, from, password string) (*CLI, error) {
 
 	_client := client.NewHTTP(rpcAddress, "/websocket")
 	verifier, err := proxy.NewVerifier(
-		chainID, filepath.Join(app.DefaultNodeHome, "lite"), _client, tmLog.NewNopLogger(), 10)
+		chainID, filepath.Join(app.DefaultNodeHome, "faucet_lite"), _client, tmLog.NewNopLogger(), 10)
 
 	if err != nil {
 		log.Println("failed to initialize the verifier", err)
