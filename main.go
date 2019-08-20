@@ -108,8 +108,8 @@ func main() {
 		HandlerFunc(transferHandler)
 
 	cors := handlers.CORS(
-		handlers.AllowedHeaders([]string{}),
-		handlers.AllowedMethods([]string{"POST", "HEAD", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type"}),
+		handlers.AllowedMethods([]string{"POST", "OPTIONS"}),
 		handlers.AllowedOrigins([]string{"*"}))
 	log.Fatal(http.ListenAndServe(":8000", cors(router)))
 }
