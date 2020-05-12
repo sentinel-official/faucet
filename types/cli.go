@@ -9,10 +9,9 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/keys"
-	"github.com/cosmos/cosmos-sdk/client/utils"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	txBuilder "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
+	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/sentinel-official/hub/app"
 	tmLog "github.com/tendermint/tendermint/libs/log"
@@ -23,7 +22,7 @@ import (
 
 type CLI struct {
 	ctx      context.CLIContext
-	txb      txBuilder.TxBuilder
+	txb      auth.TxBuilder
 	password string
 	mutex    sync.Mutex
 }
@@ -31,6 +30,7 @@ type CLI struct {
 func NewCLI(chainID, rpcAddress, from, password string) (*CLI, error) {
 	cdc := app.MakeCodec()
 	tm.RegisterEventDatas(cdc)
+	var cli CLI
 
 	kb, err := keys.NewKeyBaseFromDir(app.DefaultCLIHome)
 	if err != nil {
@@ -61,32 +61,27 @@ func NewCLI(chainID, rpcAddress, from, password string) (*CLI, error) {
 		OutputFormat:  "text",
 		NodeURI:       rpcAddress,
 		From:          keyInfo.GetName(),
-		AccountStore:  auth.StoreKey,
 		BroadcastMode: "sync",
 		Verifier:      verifier,
 		VerifierHome:  app.DefaultNodeHome,
 		FromAddress:   keyInfo.GetAddress(),
 		FromName:      keyInfo.GetName(),
 		SkipConfirm:   true,
-	}.WithAccountDecoder(cdc)
-
-	account, err := ctx.GetAccount(keyInfo.GetAddress().Bytes())
-	if err != nil {
-		log.Println("failed to get account", err)
-		return nil, err
 	}
 
-	txb := txBuilder.NewTxBuilder(utils.GetTxEncoder(cdc),
+	cli.ctx = ctx
+	cli.password = password
+
+	account, err := cli.GetAccount(keyInfo.GetAddress())
+	txb := auth.NewTxBuilder(utils.GetTxEncoder(cdc),
 		account.GetAccountNumber(), account.GetSequence(), 1000000000,
 		1.0, false, chainID,
 		"", sdk.Coins{}, sdk.DecCoins{}).
 		WithKeybase(kb)
 
-	return &CLI{
-		ctx:      ctx,
-		txb:      txb,
-		password: password,
-	}, nil
+	cli.txb = txb
+
+	return &cli, nil
 }
 
 func (c *CLI) completeAndBroadcastTxSync(messages []sdk.Msg) (*sdk.TxResponse, error) {
@@ -131,9 +126,34 @@ func (c *CLI) Transfer(to, coins string) (*sdk.TxResponse, error) {
 		return nil, err
 	}
 
-	messages := []sdk.Msg{
-		bank.NewMsgSend(c.ctx.FromAddress, toAddress, amount),
+	message := newMsgSend(c.ctx.FromAddress, toAddress, amount)
+
+	return c.completeAndBroadcastTxSync([]sdk.Msg{message})
+}
+
+func (c *CLI) GetAccount(address sdk.AccAddress) (auth.Account, error) {
+	bytes, err := c.ctx.Codec.MarshalJSON(auth.NewQueryAccountParams(address))
+	if err != nil {
+		return nil, err
 	}
 
-	return c.completeAndBroadcastTxSync(messages)
+	res, _, err := c.ctx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	var account auth.Account
+	if err := c.ctx.Codec.UnmarshalJSON(res, &account); err != nil {
+		return nil, err
+	}
+
+	return account, nil
+}
+
+func newMsgSend(fromAddress, toAddress sdk.AccAddress, amount sdk.Coins) (bank.MsgSend) {
+	return bank.MsgSend{
+		FromAddress: fromAddress,
+		ToAddress:   toAddress,
+		Amount:      amount,
+	}
 }

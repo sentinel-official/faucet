@@ -29,7 +29,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&chainID, "chain-id", "sentinel-turing-1", "chain id")
+	flag.StringVar(&chainID, "chain-id", "sentinel-turing-2", "chain id")
 	flag.StringVar(&rpcAddress, "rpc-address", "127.0.0.1:26657", "rpc server address")
 	flag.StringVar(&from, "from", "faucet", "from account name")
 	flag.StringVar(&password, "password", "", "from account password")
@@ -83,6 +83,7 @@ func transferHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Add("Content-Type", "application/json")
 	utils.WriteResultToResponse(w, 200, txRes)
 }
 

@@ -1,13 +1,11 @@
 module github.com/sentinel-official/faucet
 
-go 1.12
+go 1.13
 
 require (
-	github.com/cosmos/cosmos-sdk v0.35.0
+	github.com/cosmos/cosmos-sdk v0.37.4
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.3
-	github.com/sentinel-official/hub v0.1.0
-	github.com/tendermint/tendermint v0.31.5
+	github.com/sentinel-official/hub v0.1.1-0.20191120110536-540390490cfe
+	github.com/tendermint/tendermint v0.32.8
 )
-
-replace golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5
